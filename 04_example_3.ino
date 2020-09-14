@@ -42,7 +42,7 @@ int toggle_state(int toggle) {
   digitalWrite(PIN_LED, HIGH);
   delay(1000);
   digitalWrite(PIN_LED, LOW);
-  dealy(1000);
+  delay(1000);
 
 }
 
