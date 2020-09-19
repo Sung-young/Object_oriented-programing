@@ -7,7 +7,6 @@ void setup() {
 
   pinMode(PIN_LED, OUTPUT);
   pinMode(LED, OUTPUT);
-  int blinkNumber = 5;
   
 
   Serial.begin(115200); // Initialize serial port
