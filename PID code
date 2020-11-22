@@ -1,0 +1,141 @@
+#include <Servo.h>
+
+#define PIN_LED 9   			
+#define PIN_SERVO 10		
+#define PIN_IR A0			
+
+#define _DIST_TARGET 255	
+#define _DIST_MIN 100		
+#define _DIST_MAX 400                   
+
+#define _DIST_ALPHA 0.0		
+
+#define _DUTY_MIN 1000					
+#define _DUTY_NEU 1500 		
+#define _DUTY_MAX 2000                
+
+
+#define _SERVO_ANGLE 30 	
+#define _SERVO_SPEED 20 	
+
+
+#define _INTERVAL_DIST 10 	
+#define _INTERVAL_SERVO 10 	
+#define _INTERVAL_SERIAL 100 	
+
+
+#define _KP 2.0  
+#define _KI 1.0   
+#define _KD 2.0 
+
+Servo myservo; 
+
+float dist_target; 
+float dist_raw, dist_ema; 
+
+unsigned long last_sampling_time_dist, last_sampling_time_servo, last_sampling_time_serial;
+
+bool event_dist, event_servo, event_serial;	
+
+
+int duty_chg_per_interval; 
+int duty_target, duty_curr;	
+
+
+float error_curr, error_prev, control, pterm, dterm, iterm; 
+
+void setup() {
+
+  pinMode(PIN_LED, OUTPUT); 
+  myservo.attach(PIN_SERVO);
+
+duty_target, duty_curr = _DIST_MIN; 
+last_sampling_time_dist, last_sampling_time_servo, last_sampling_time_serial = 0;
+
+dist_raw, dist_ema = _DIST_MIN; 
+pterm = iterm = dterm = 0; 
+
+  myservo.writemicroseconds(_DUTY_NEU); 
+
+  Serial.begin(57600); 
+  duty_chg_per_interval = (_DUTY_MAX - _DUTY_MIN)/(float)(_SERVO_ANGLE) * (_SERVO_SPEED /1000.0)*_INTERVAL_SERVO; }
+  
+void loop() {
+
+    unsigned long time_curr = millis(); 
+    if(time_curr >= last_sampling_time_dist + _INTERVAL_DIST) {
+        last_sampling_time_dist += _INTERVAL_DIST;
+        event_dist = true;
+    }
+    if(time_curr >= last_sampling_time_servo + _INTERVAL_SERVO) {
+        last_sampling_time_servo += _INTERVAL_SERVO;
+        event_servo = true;
+    }
+    if(time_curr >= last_sampling_time_serial + _INTERVAL_SERIAL) {
+        last_sampling_time_serial += _INTERVAL_SERIAL;
+        event_serial = true;
+    }
+
+    if(event_dist) {
+        event_dist = false; 
+        dist_raw = ir_distance_filtered(); 
+        dist_ema = _DIST_ALPHA * dist_raw + (1 - _DIST_ALPHA) * dist_ema; 
+       
+        error_curr = _DIST_TARGET - dist_raw 
+        pterm = error_curr; 
+        control = _KP * pterm + _KI * iterm +  _KD * dterm; 
+
+        duty_target = duty_neutral * (1 + control) 
+
+        if(duty_target < _DUTY_MIN)  
+        {
+            duty_target = _DUTY_MIN;
+        }
+        if(duty_target > _DUTY_MAX)
+        {
+            duty_target = _DUTY_MAX;
+        }
+  }
+  
+    if(event_servo) {
+        event_servo = false; 
+        if(duty_target > duty_curr) { 
+            duty_curr += duty_chg_per_interval;
+        if(duty_curr > duty_target) duty_curr = duty_target;
+    }
+    else {
+        duty_curr -= duty_chg_per_interval;
+        if(duty_curr < duty_target) duty_curr = duty_target;
+    }
+
+        
+        myservo.writeMicroseconds((int)duty_curr); 
+
+        event_servo = false; 
+    }
+  
+    if(event_serial) {
+        event_serial = false; 
+    Serial.print("dist_ir:");
+    Serial.print(dist_raw);
+    Serial.print(",pterm:");
+    Serial.print(map(pterm,-1000,1000,510,610));
+    Serial.print(",duty_target:");
+    Serial.print(map(duty_target,1000,2000,410,510));
+    Serial.print(",duty_curr:");
+    Serial.print(map(duty_curr,1000,2000,410,510));
+    Serial.println(",Min:100,Low:200,dist_target:255,High:310,Max:410");
+
+        event_serial = false; 
+    }
+}
+
+float ir_distance(void){ 
+    float val;
+    float volt = float(analogRead(PIN_IR)); 
+    val = ((6762.0/(volt - 9.0)) - 4.0) * 10.0; 
+    return val; 
+}
+
+float ir_distance_filtered(void){ 
+  return ir_distance(); 
