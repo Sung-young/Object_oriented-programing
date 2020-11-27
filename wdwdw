@@ -1,0 +1,195 @@
+import ssl 
+import re 
+from urllib.request import urlopen 
+from bs4 import BeautifulSoup 
+from openpyxl import Workbook
+from openpyxl import load_workbook 
+
+
+
+def crolling_word(): 
+    context = ssl._create_unverified_context() 
+    global sort_of_program
+     
+    print("\n안녕하세요 SH단어프로그램입니다.\n")
+    print('1. 오픈 데이터를 활용한 단어장으로 실행하기\n2. 사용자 지정 단어장으로 실행하기\n')
+    sort_of_program = int(input("실행하고 싶은 단어장의 번호를 입력하세요 : "))
+    
+    if sort_of_program == 1:
+        print("Plase waiting for making a workbook from the 'Naver'")
+        site_adress = 'https://learn.dict.naver.com/m/endic/wordbook/exam/10001/20001/words.nhn?filterType=0&orderType=1&pageNo=' 
+        page = 1 
+        Work_BooK_ = Workbook()  
+        Book_active = Work_BooK_.active 
+        Book_active.title='wordList' 
+        Re_compling = re.compile(r'\s+')
+        n=1 
+
+        
+         
+    
+        for i in range(5) : 
+            newUrl = site_adress+str(page) 
+            html = urlopen(newUrl,context=context).read() 
+            soup=BeautifulSoup(html,'html.parser') 
+            wordClass=soup.find_all(class_='lst_li2') 
+            for i in wordClass : 
+                word = i.select_one('.words').text 
+                mean = i.select_one('.txt_ct2').text 
+                splitMean=(mean.split(','))[0] 
+                splitMean=re.sub(Re_compling,'',splitMean) 
+                wordList =[word,splitMean] 
+            
+                for i in range(n,n+1):  
+                    Book_active.cell(row=i,column=1).value=wordList[0] 
+                    Book_active.cell(row=i,column=2).value=wordList[1] 
+                    n=n+1 
+      
+            page = page+1 
+        Work_BooK_.save('./wordList.xlsx')
+        
+    elif sort_of_program == 2:
+        print("\n몇개의 단어를 입력하실 건가요?\n")
+        a=0
+        User_want_List = []
+        User_want = int(input("\n입력하실 단어의 갯수를 입력하세요 : "))
+        
+        while(a<User_want):
+            a +=1
+            word_input = input("\n단어를 입력하세요 : ")
+            mean_input = input("\n단어의 뜻을 입력하세요 : ")
+            User_want_List.append([word_input,mean_input])
+        wait = input("\n시험치실 준비가 됬다면 엔터를 눌러주세요. : ")
+        if wait == "" :
+            print("\n 단어시험 시작 \n") 
+            score = 0 
+            wrongWord = [] 
+            for i in range(len(User_want_List)): 
+                print(str(i+1)+'.'+User_want_List[i][1]) 
+                User_put_word = input("단어를 입력하세요 : ") 
+                if User_put_word == User_want_List[i][0]: 
+                    print("정답!!!") 
+                    score = score+1 
+                elif User_put_word != User_want_List[i][0]: 
+                    print("Wrong! The Answer : "+User_want_List[i][0]) 
+                    wrongWord.append(User_want_List[i]) 
+            print("Right count : "+str(score)) 
+            print("\n--------Wrong word you entered------") 
+            for i in range(len(wrongWord)) : 
+                print("[단어] : "+wrongWord[i][0]+" [의미] : "+wrongWord[i][1]) 
+            print("--------------------------------------")  
+            
+
+import random 
+Word_Result = 0 
+Mean_Result = 0
+def crolling_word_2(word_remain,mean_remain): 
+    Word_Result = word_remain
+    Mean_Result = mean_remain
+    word_of_crolling = [] 
+    
+    n=0 
+    for i in word_remain: 
+        word_of_List=[] 
+        word_of_List.append(word_remain[n]) 
+        word_of_List.append(mean_remain[n]) 
+        word_of_crolling.append(word_of_List) 
+        n=n+1 
+
+    random.shuffle(word_of_crolling)
+    print("\n Let's start testing word \n") 
+    score = 0 
+    List_of_wrong_Word = [] 
+    for i in range(len(word_of_crolling)): 
+        print(str(i+1)+'.'+word_of_crolling[i][1]) 
+        User_put_word = input("Put the Answer : ")   
+        if User_put_word == word_of_crolling[i][0]: 
+            print("Right Answer") 
+            score = score+1 
+        elif User_put_word != word_of_crolling[i][0]: 
+            print("Wrong! The Answer is "+word_of_crolling[i][0]) 
+            List_of_wrong_Word.append(word_of_crolling[i]) 
+    print("Right count : "+str(score)) 
+    print("\n--------------Wrong word you entered--------------") 
+    for i in range(len(List_of_wrong_Word)) : 
+        print("[단어] : "+List_of_wrong_Word[i][0]+" [의미] : "+List_of_wrong_Word[i][1]) 
+    print("--------------------------------------------------------") 
+
+            
+
+words = [] 
+mean = []  
+Work_BooK_ = load_workbook('./wordList.xlsx',data_only=True) 
+Word_supply = Work_BooK_['wordList']
+English = Word_supply['A'] 
+Korean = Word_supply['B']  
+ 
+
+for cell in English: 
+    
+    words.append(cell.value) 
+for cell in Korean: 
+    mean.append(cell.value) 
+    
+
+page = 0 
+word_of_len = len(words) #end = word_of_len
+bundle_of_word = 20 
+
+word_Remain = [words[i*bundle_of_word:(i+1)*bundle_of_word] for i in range((word_of_len+bundle_of_word-1)//bundle_of_word)] 
+mean_Remain = [mean[i*bundle_of_word:(i+1)*bundle_of_word] for i in range((word_of_len+bundle_of_word-1)//bundle_of_word)] 
+
+n=0
+crolling_word()
+
+if sort_of_program == 1 :
+    print('page '+str(page+1)+'/'+str(len(word_Remain))) 
+    for i in word_Remain[page]: 
+        print(str(n+1)+'. '+i+" "+mean_Remain[0][n]) 
+        n=n+1
+    n = 0
+    while True:
+        
+        print('\n [1] Test word on current Page [2] Go to Previous Page [3] Go to Next Page [4] End the WorkBook\n') 
+        screen_on = int(input("메뉴입력 : "))
+        if screen_on == 1 : 
+            print("선택하신 오픈 데이터 단어장 리스트입니다.")
+            print('page '+str(page+1)+'/'+str(len(word_Remain))) 
+            for i in word_Remain[page]: 
+                print(str(n+1)+'. '+i+" "+mean_Remain[0][n]) 
+                n=n+1 
+            n=0 
+            test_ready=input("시험 준비가 다 됬다면  엔터를 눌러주세요")
+
+            if test_ready == "" :
+                print("\n\n\n")
+                print("1.영어단어를 보고 뜻 맞추기\n2.뜻을 보고 영어단어 맞추기")
+                word_or_mean = int(input("시험치고 싶은 방법을 1,2중에 고르시오 : "))
+                
+                if word_or_mean == 1 : 
+                    crolling_word_2(mean_Remain[page], word_Remain[page])
+                elif word_or_mean == 2 :
+                    crolling_word_2(word_Remain[page], mean_Remain[page])
+        elif screen_on== 2: #이전
+            if page ==0 : 
+                print("\nTHis is First Page\n") 
+            else: 
+                page = page-1
+                print('page '+str(page+1)+'/'+str(len(word_Remain))) 
+                for i in word_Remain[page]: 
+                    print(str(n+1)+'. '+i+" "+mean_Remain[int(page)][n]) 
+                    n=n+1 
+                n=0 
+        elif screen_on== 3: #다음
+            if page ==(len(word_Remain))-1: 
+                print("\nThis is Last Page\n") 
+            else: 
+                page = page+1 
+                print('page '+str(page+1)+'/'+str(len(word_Remain))) 
+                for i in word_Remain[page]: 
+                    print(str(n+1)+'. '+i+" "+mean_Remain[int(page)][n]) 
+                    n=n+1 
+                n=0 
+
+        elif screen_on == 4 : 
+                break
